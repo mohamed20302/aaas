@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الإجازات السنوية للموظفين</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- الهيدر -->
+    <header class="bg-blue-600 text-white shadow-md">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold"> نظام إدارة الإجازات السنوية</h1>
+            <nav class="space-x-2 space-x-reverse">
+                <button onclick="switchTab('employee')" id="btn-employee" class="bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition">بوابة الموظف</button>
+                <button onclick="switchTab('hr')" id="btn-hr" class="bg-blue-800 opacity-75 px-4 py-2 rounded-lg text-sm font-semibold transition">لوحة الـ HR</button>
+                <button onclick="switchTab('settings')" id="btn-settings" class="bg-blue-800 opacity-75 px-4 py-2 rounded-lg text-sm font-semibold transition">الإعدادات والشيت</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="container mx-auto px-4 py-6 flex-grow">
+        
+        <!-- تبويب بوابة الموظف -->
+        <section id="tab-employee" class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-xl mx-auto">
+                <h2 class="text-lg font-bold text-blue-600 mb-4">تقديم طلب إجازة جديد</h2>
+                <form id="leaveForm" onsubmit="submitLeave(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">اسم الموظف</label>
+                        <input type="text" id="empName" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="أدخل اسمك الثلاثي">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">من تاريخ</label>
+                            <input type="date" id="startDate" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">إلى تاريخ</label>
+                            <input type="date" id="endDate" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1">سبب الإجازة</label>
+                        <textarea id="reason" rows="3" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="اكتب سبب الإجازة..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition">إرسال الطلب</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- تبويب لوحة الـ HR -->
+        <section id="tab-hr" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-bold text-blue-600 mb-4">طلبات الإجازات المقدمة</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-sm">
+                                <th class="p-3 border">الموظف</th>
+                                <th class="p-3 border">من</th>
+                                <th class="p-3 border">إلى</th>
+                                <th class="p-3 border">السبب</th>
+                                <th class="p-3 border">الحالة</th>
+                                <th class="p-3 border">الإجراء</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsTableBody">
+                            <!-- سيتم تعبئتها ديناميكياً -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- تبويب الإعدادات وكود شيت جوجل -->
+        <section id="tab-settings" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 max-w-2xl mx-auto space-y-4">
+                <h2 class="text-lg font-bold text-blue-600">إعدادات ربط Google Sheets</h2>
+                <div>
+                    <label class="block text-sm font-semibold mb-1">رابط Google Apps Script Web App URL</label>
+                    <input type="text" id="scriptUrl" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="https://script.google.com/macros/s/.../exec">
+                </div>
+                <button onclick="saveSettings()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 transition">حفظ الرابط</button>
+                
+                <hr class="my-4">
+                
+                <h3 class="font-bold text-sm text-gray-700">كود Google Apps Script (للصقه في نافذة Extensions -> Apps Script بالشيت):</h3>
+                <textarea readonly rows="8" class="w-full bg-gray-100 border rounded-lg p-2 text-xs font-mono">
+function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  sheet.appendRow([data.name, data.startDate, data.endDate, data.reason, "قيد الانتظار"]);
+  return ContentService.createTextOutput(JSON.stringify({"status":"success"})).setMimeType(ContentService.MimeType.JSON);
+}
+                </textarea>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t py-4 text-center text-xs text-gray-500">
+        نظام إدارة الإجازات السنوية &copy; 2026
+    </footer>
+
+    <script>
+        function switchTab(tab) {
+            document.getElementById('tab-employee').classList.add('hidden');
+            document.getElementById('tab-hr').classList.add('hidden');
+            document.getElementById('tab-settings').classList.add('hidden');
+            
+            document.getElementById('btn-employee').className = "bg-blue-800 opacity-75 px-4 py-2 rounded-lg text-sm font-semibold transition";
+            document.getElementById('btn-hr').className = "bg-blue-800 opacity-75 px-4 py-2 rounded-lg text-sm font-semibold transition";
+            document.getElementById('btn-settings').className = "bg-blue-800 opacity-75 px-4 py-2 rounded-lg text-sm font-semibold transition";
+
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.getElementById('btn-' + tab).className = "bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition";
+            
+            if(tab === 'hr') loadRequests();
+        }
+
+        let localRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+
+        function submitLeave(e) {
+            e.preventDefault();
+            const req = {
+                name: document.getElementById('empName').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                reason: document.getElementById('reason').value,
+                status: 'قيد الانتظار'
+            };
+
+            const url = document.getElementById('scriptUrl').value || localStorage.getItem('scriptUrl');
+            if (url) {
+                fetch(url, { method: 'POST', mode: 'no-cors', body: JSON.stringify(req) })
+                .then(() => alert('تم إرسال الطلب بنجاح إلى جوجل شيت!'))
+                .catch(() => alert('حدث خطأ أثناء الإرسال'));
+            } else {
+                localRequests.push(req);
+                localStorage.setItem('leaveRequests', JSON.stringify(localRequests));
+                alert('تم حفظ الطلب محلياً بنجاح!');
+            }
+            document.getElementById('leaveForm').reset();
+        }
+
+        function loadRequests() {
+            const tbody = document.getElementById('requestsTableBody');
+            tbody.innerHTML = '';
+            localRequests.forEach((req, index) => {
+                tbody.innerHTML += `
+                    <tr class="border-b text-sm">
+                        <td class="p-3">${req.name}</td>
+                        <td class="p-3">${req.startDate}</td>
+                        <td class="p-3">${req.endDate}</td>
+                        <td class="p-3">${req.reason}</td>
+                        <td class="p-3"><span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">${req.status}</span></td>
+                        <td class="p-3"><button onclick="updateStatus(${index}, 'مقبول')" class="bg-green-500 text-white px-2 py-1 rounded text-xs">قبول</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateStatus(index, status) {
+            localRequests[index].status = status;
+            localStorage.setItem('leaveRequests', JSON.stringify(localRequests));
+            loadRequests();
+        }
+
+        function saveSettings() {
+            const url = document.getElementById('scriptUrl').value;
+            localStorage.setItem('scriptUrl', url);
+            alert('تم حفظ الرابط بنجاح!');
+        }
+
+        window.onload = function() {
+            const savedUrl = localStorage.getItem('scriptUrl');
+            if(savedUrl) document.getElementById('scriptUrl').value = savedUrl;
+        }
+    </script>
+</body>
+</html>
